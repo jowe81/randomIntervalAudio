@@ -11,9 +11,12 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
-            background-color: rgb(255, 143, 143);
+            background-image: url('./background.jpg');
+            background-repeat: none;
+            background-size:cover;
+            background-position: center;
+            overflow: hidden;
         }
 
         .bg-green {
@@ -24,10 +27,26 @@
             background-color: rgb(255, 143, 143);
         }
 
+        .bg-orange {
+            background-color: rgb(255, 185, 54);
+        }
+
+        .bg-black {
+            background-color: black;
+        }
+
+        .bg-blue {
+            background-color: rgba(168, 168, 255, 0.758);
+        }
+
         .container {
             text-align: center;
-
+            padding:15px;
             width: 400px;
+            opacity: 70%;
+            position: absolute;
+            top: 50%;
+            border-radius: 5px;
         }
 
         .status {
@@ -55,11 +74,22 @@
             font-size: 1em;
             cursor: pointer;
         }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 80%;
+            }
+
+            #statusText {
+                font-size: 80%;
+            }
+        }
     </style>
 </head>
 
-<body>
-    <div class="container">
+<body class="bg-black">
+    <div class="container bg-blue">
+        <h3>Jess' Arm Wrestling Trainer</h3>
         <button id="startBtn">Start Playing</button>
         <p class="status" id="statusText">Initializing...</p>
 
@@ -120,17 +150,48 @@
         return await response.json();
     }
 
-    // Function to preload all audio files
-    async function preloadMp3Files(mp3Files) {
-        console.log(mp3Files)
-        mp3Files.forEach((file, index) => {
-            statusText.textContent = `Preloading file ${index} of ${mp3Files.length - 1}`;
+    async function preloadMp3Files(mp3Files, onComplete) {
+        color('red');
+        console.log(`Preloading ${mp3Files.length} files...`);
+        let loadedCount = 0;
+
+        for (let index = 0; index < mp3Files.length; index++) {
+            const file = mp3Files[index];
+            const status = `Preloading file ${index + 1} of ${mp3Files.length}`;
+            console.log(status);
+            statusText.textContent = status;
 
             const audio = new Audio(`/media/${file}`);
             audio.preload = 'auto';
-            preloadedAudios[file] = audio; // Store preloaded audio
-        });
-       statusText.textContent = 'All audio files preloaded';
+
+            // Wrap event listening in a Promise
+            await new Promise((resolve) => {
+                audio.addEventListener('canplaythrough', () => {
+                    console.log(`File ${file} loaded.`);
+                    resolve();
+                }, { once: true });
+
+                // Optional: handle load error
+                audio.addEventListener('error', (e) => {
+                    console.warn(`Failed to preload ${file}`, e);
+                    resolve(); // Still resolve so the app continues
+                }, { once: true });
+            });
+
+            preloadedAudios[file] = audio;
+            loadedCount++;
+        }
+
+        statusText.textContent = 'All audio files preloaded';
+        if (onComplete) onComplete();
+    }
+
+
+    function color(color) {
+        const element = document.querySelector('.container');
+        const allColors = ['green', 'orange', 'red', 'blue'];
+        allColors.forEach(color => element.classList.remove(`bg-${color}`));
+        element.classList.add(`bg-${color}`);
     }
 
     // Function to pick a random MP3 file from the list
@@ -162,6 +223,7 @@
             statusText.textContent = `Playing: ${randomMp3} | Next play in ${Math.round(nextInterval / 1000)} seconds.`;
 
             intervalId = setTimeout(playRandomAudio, nextInterval);
+            color('green');
         }
 
         playRandomAudio();
@@ -172,6 +234,7 @@
         clearTimeout(intervalId);
         startBtn.textContent = 'Start Playing';
         statusText.textContent = 'Click "Start Playing" to begin.';
+        color('red');
     }
 
     startBtn.addEventListener('click', () => {
@@ -184,6 +247,7 @@
 
     audioElement.addEventListener('ended', () => {
         statusText.textContent = 'Audio played. Waiting for the next play...';
+        color('orange');
     });
 
 
@@ -193,7 +257,7 @@
             statusText.textContent = 'No MP3 files found in the media folder.';
             return;
         }
-        preloadMp3Files(mp3Files); // Preload all files
+        preloadMp3Files(mp3Files, () => color('red')); // Preload all files
     });
     
 
