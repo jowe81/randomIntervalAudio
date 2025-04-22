@@ -151,6 +151,8 @@
     }
 
     async function preloadMp3Files(mp3Files, onComplete) {
+        const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
         color('red');
         console.log(`Preloading ${mp3Files.length} files...`);
         let loadedCount = 0;
@@ -164,25 +166,33 @@
             const audio = new Audio(`/media/${file}`);
             audio.preload = 'auto';
 
-            // Wrap event listening in a Promise
-            await new Promise((resolve) => {
-                audio.addEventListener('canplaythrough', () => {
-                    console.log(`File ${file} loaded.`);
-                    resolve();
-                }, { once: true });
+            // Only attempt to preload when not on iOS.
+            if (!isiOS) {
+                // Wrap event listening in a Promise
+                try {
+                    await new Promise((resolve) => {
+                        audio.addEventListener('canplaythrough', () => {
+                            console.log(`File ${file} loaded.`);
+                            resolve();
+                        }, { once: true });
 
-                // Optional: handle load error
-                audio.addEventListener('error', (e) => {
-                    console.warn(`Failed to preload ${file}`, e);
-                    resolve(); // Still resolve so the app continues
-                }, { once: true });
-            });
+                        // Optional: handle load error
+                        audio.addEventListener('error', (e) => {
+                            console.warn(`Failed to preload ${file}`, e);
+                            alert('eror');
+                            resolve(); // Still resolve so the app continues
+                        }, { once: true });
+                    });
+                } catch (err) {
+                    console.log('An error occurred while attempting to preload file:', file);
+                }
+            }
 
             preloadedAudios[file] = audio;
             loadedCount++;
         }
 
-        statusText.textContent = 'All audio files preloaded';
+        statusText.textContent = isiOS ? '~~~' : 'All audio files preloaded';
         if (onComplete) onComplete();
     }
 
