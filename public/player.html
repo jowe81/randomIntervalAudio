@@ -109,6 +109,7 @@
     </div>
 
 <script>
+    const audioCache = {};
     const audioElement = document.getElementById('audio');
     const startBtn = document.getElementById('startBtn');
     const statusText = document.getElementById('statusText');
@@ -267,6 +268,13 @@
             statusText.textContent = 'No MP3 files found in the media folder.';
             return;
         }
+
+        fileList.forEach(file => {
+            const audio = new Audio(`/media/${file}`);
+            audio.preload = 'auto';
+            audioCache[file] = audio;
+        });
+
         preloadMp3Files(mp3Files, () => color('red')); // Preload all files
     });
     
